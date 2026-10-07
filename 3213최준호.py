@@ -9,7 +9,7 @@ st.set_page_config(
 
 st.title("⚫ 알까기")
 
-game_html = r"""
+GAME = r"""
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -20,56 +20,54 @@ game_html = r"""
     box-sizing: border-box;
 }
 
-body {
+html, body {
     margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
     font-family: Arial, sans-serif;
-    background: transparent;
-    color: #222;
     user-select: none;
 }
 
 #app {
     width: 100%;
-    max-width: 760px;
-    margin: auto;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 4px 8px 20px;
 }
 
 #menu {
-    background: #f7f7f7;
-    border-radius: 14px;
-    padding: 15px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
 }
 
-.menu-row {
+.control {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 10px;
+    flex-direction: column;
+    gap: 4px;
 }
 
-.menu-row:last-child {
-    margin-bottom: 0;
-}
-
-label {
+.control label {
+    font-size: 13px;
     font-weight: bold;
+    color: #555;
 }
 
 select,
 button {
+    width: 100%;
     min-height: 42px;
-    border-radius: 9px;
     border: 1px solid #bbb;
-    padding: 8px 13px;
-    font-size: 15px;
+    border-radius: 9px;
+    background: white;
+    padding: 7px 10px;
+    font-size: 14px;
 }
 
 button {
     cursor: pointer;
-    background: white;
 }
 
 button:hover {
@@ -84,37 +82,63 @@ button:hover {
 
 #status {
     text-align: center;
-    font-size: 18px;
     font-weight: bold;
-    margin-bottom: 10px;
+    font-size: 18px;
+    min-height: 25px;
+    margin-bottom: 4px;
 }
 
 #score {
     text-align: center;
     color: #666;
-    font-size: 14px;
-    margin-bottom: 10px;
+    font-size: 13px;
+    margin-bottom: 9px;
+}
+
+/*
+ * 핵심 수정:
+ * 게임판의 비율을 고정하고,
+ * 부모 영역 안에서만 크기가 결정되도록 함.
+ */
+#boardWrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    overflow: visible;
 }
 
 #board {
     position: relative;
-    width: min(92vw, 650px);
-    aspect-ratio: 1 / 1;
-    margin: auto;
+
+    width: min(
+        calc(100vw - 36px),
+        640px
+    );
+
+    height: min(
+        calc(100vw - 36px),
+        640px
+    );
+
+    /*
+     * iframe 내부 높이가 부족해지는 문제를 막기 위해
+     * 절대로 height를 viewport 단위로 잡지 않음.
+     */
+    flex: 0 0 auto;
 
     background:
         radial-gradient(
             circle at 50% 45%,
-            #e1b35b 0%,
-            #c9943b 100%
+            #e3b55f 0%,
+            #c9953d 100%
         );
 
-    border: 15px solid #67401d;
-    border-radius: 18px;
+    border: 14px solid #68411d;
+    border-radius: 17px;
 
     box-shadow:
-        inset 0 0 35px rgba(0,0,0,.25),
-        0 8px 18px rgba(0,0,0,.25);
+        inset 0 0 30px rgba(0,0,0,.25),
+        0 7px 16px rgba(0,0,0,.25);
 
     overflow: hidden;
     touch-action: none;
@@ -122,52 +146,53 @@ button:hover {
 
 .hole {
     position: absolute;
-    width: 48px;
-    height: 48px;
+    width: 42px;
+    height: 42px;
 
     background:
         radial-gradient(
             circle,
-            #050505 0%,
-            #171717 65%,
+            #000 0%,
+            #151515 65%,
             #333 100%
         );
 
     border-radius: 50%;
     transform: translate(-50%, -50%);
 
+    z-index: 2;
+
     box-shadow:
-        inset 0 5px 10px rgba(0,0,0,.9),
-        0 2px 3px rgba(255,255,255,.15);
+        inset 0 4px 9px rgba(0,0,0,.9);
 }
 
 .marble {
     position: absolute;
 
-    width: 34px;
-    height: 34px;
-
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
 
     transform:
         translate(-50%, -50%);
 
+    border-radius: 50%;
+
     z-index: 5;
 
-    box-shadow:
-        2px 4px 6px rgba(0,0,0,.5),
-        inset 5px 5px 6px rgba(255,255,255,.35);
-
     pointer-events: none;
+
+    box-shadow:
+        2px 4px 6px rgba(0,0,0,.45),
+        inset 5px 5px 5px rgba(255,255,255,.3);
 }
 
 .black {
     background:
         radial-gradient(
             circle at 30% 25%,
-            #666,
-            #222 55%,
-            #050505 100%
+            #777,
+            #252525 55%,
+            #050505
         );
 
     border: 2px solid #000;
@@ -178,8 +203,8 @@ button:hover {
         radial-gradient(
             circle at 30% 25%,
             #fff,
-            #ddd 55%,
-            #999 100%
+            #ddd 60%,
+            #999
         );
 
     border: 2px solid #777;
@@ -187,8 +212,9 @@ button:hover {
 
 #aim {
     position: absolute;
-
-    height: 5px;
+    height: 4px;
+    display: none;
+    z-index: 10;
 
     background:
         linear-gradient(
@@ -197,89 +223,75 @@ button:hover {
             #ff8a80
         );
 
-    border-radius: 10px;
-
+    border-radius: 4px;
     transform-origin: left center;
-
-    display: none;
-
-    z-index: 20;
+    pointer-events: none;
 }
 
 #pauseOverlay {
     position: absolute;
-
     inset: 0;
 
-    background: rgba(0,0,0,.72);
+    z-index: 100;
 
     display: none;
 
     align-items: center;
     justify-content: center;
 
-    z-index: 100;
+    background: rgba(0,0,0,.68);
 }
 
 #pauseBox {
-    width: min(85%, 350px);
+    width: min(85%, 330px);
+    padding: 22px;
 
     background: white;
-
-    border-radius: 18px;
-
-    padding: 25px;
+    border-radius: 16px;
 
     text-align: center;
 
-    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    box-shadow:
+        0 10px 30px rgba(0,0,0,.4);
 }
 
 #pauseBox h2 {
     margin-top: 0;
 }
 
-.pause-buttons {
+.pauseButtons {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-}
-
-.pause-buttons button {
-    width: 100%;
+    gap: 8px;
 }
 
 #hint {
     text-align: center;
-    color: #666;
-    font-size: 13px;
-    margin-top: 12px;
+    margin-top: 10px;
+    color: #777;
+    font-size: 12px;
 }
 
 @media (max-width: 500px) {
 
     #menu {
-        padding: 10px;
+        grid-template-columns: 1fr;
     }
 
-    .menu-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    select,
-    button {
-        width: 100%;
+    #board {
+        width: calc(100vw - 28px);
+        height: calc(100vw - 28px);
+        border-width: 10px;
     }
 
     .hole {
-        width: 38px;
-        height: 38px;
+        width: 34px;
+        height: 34px;
     }
 
     .marble {
-        width: 29px;
-        height: 29px;
+        width: 28px;
+        height: 28px;
     }
 }
 </style>
@@ -291,26 +303,19 @@ button:hover {
 
     <div id="menu">
 
-        <div class="menu-row">
-
-            <label for="mode">
-                게임 방식
-            </label>
+        <div class="control">
+            <label>게임 방식</label>
 
             <select id="mode">
                 <option value="ai">🤖 AI와 대전</option>
                 <option value="pvp">👥 2인 대전</option>
             </select>
-
         </div>
 
-        <div class="menu-row">
+        <div class="control">
+            <label>알 개수</label>
 
-            <label for="ballCount">
-                알 개수
-            </label>
-
-            <select id="ballCount">
+            <select id="count">
                 <option value="1">1개</option>
                 <option value="2">2개</option>
                 <option value="3" selected>3개</option>
@@ -320,46 +325,24 @@ button:hover {
                 <option value="7">7개</option>
                 <option value="8">8개</option>
             </select>
-
         </div>
 
-        <div
-            class="menu-row"
-            id="difficultyRow"
-        >
-
-            <label for="difficulty">
-                AI 난이도
-            </label>
+        <div class="control" id="difficultyBox">
+            <label>AI 난이도</label>
 
             <select id="difficulty">
-
-                <option value="easy">
-                    쉬움
-                </option>
-
-                <option value="normal" selected>
-                    보통
-                </option>
-
-                <option value="hard">
-                    어려움
-                </option>
-
+                <option value="easy">쉬움</option>
+                <option value="normal" selected>보통</option>
+                <option value="hard">어려움</option>
             </select>
-
         </div>
 
-        <div class="menu-row">
+        <div class="control">
+            <label>&nbsp;</label>
 
             <button id="newGame">
                 🔄 새 게임
             </button>
-
-            <button id="pauseButton">
-                ⏸ 일시정지
-            </button>
-
         </div>
 
     </div>
@@ -369,62 +352,52 @@ button:hover {
     </div>
 
     <div id="score">
-        검은 알 3개 · 흰 알 3개
+        ⚫ 3개 · ⚪ 3개
     </div>
 
-    <div id="board">
+    <div id="boardWrap">
 
-        <div
-            class="hole"
-            style="left:0%;top:0%"
-        ></div>
+        <div id="board">
 
-        <div
-            class="hole"
-            style="left:50%;top:0%"
-        ></div>
+            <div class="hole"
+                 style="left:0%;top:0%"></div>
 
-        <div
-            class="hole"
-            style="left:100%;top:0%"
-        ></div>
+            <div class="hole"
+                 style="left:50%;top:0%"></div>
 
-        <div
-            class="hole"
-            style="left:0%;top:100%"
-        ></div>
+            <div class="hole"
+                 style="left:100%;top:0%"></div>
 
-        <div
-            class="hole"
-            style="left:50%;top:100%"
-        ></div>
+            <div class="hole"
+                 style="left:0%;top:100%"></div>
 
-        <div
-            class="hole"
-            style="left:100%;top:100%"
-        ></div>
+            <div class="hole"
+                 style="left:50%;top:100%"></div>
 
-        <div id="aim"></div>
+            <div class="hole"
+                 style="left:100%;top:100%"></div>
 
-        <div id="pauseOverlay">
+            <div id="aim"></div>
 
-            <div id="pauseBox">
+            <div id="pauseOverlay">
 
-                <h2>⏸ 게임 일시정지</h2>
+                <div id="pauseBox">
 
-                <p>
-                    ESC를 누르거나 버튼을 눌러 계속할 수 있습니다.
-                </p>
+                    <h2>⏸ 일시정지</h2>
 
-                <div class="pause-buttons">
+                    <p>게임이 잠시 멈췄습니다.</p>
 
-                    <button id="resume">
-                        ▶ 계속하기
-                    </button>
+                    <div class="pauseButtons">
 
-                    <button id="restart">
-                        🔄 새 게임
-                    </button>
+                        <button id="resume">
+                            ▶ 계속하기
+                        </button>
+
+                        <button id="restart">
+                            🔄 새 게임
+                        </button>
+
+                    </div>
 
                 </div>
 
@@ -435,107 +408,72 @@ button:hover {
     </div>
 
     <div id="hint">
-        알을 뒤쪽으로 당긴 후 놓으면 발사됩니다.
-        ESC를 누르면 일시정지합니다.
+        알을 뒤로 당긴 뒤 놓으세요 · ESC = 일시정지
     </div>
 
 </div>
 
 
 <script>
+const board = document.getElementById("board");
+const status = document.getElementById("status");
+const score = document.getElementById("score");
 
-const board =
-    document.getElementById("board");
+const mode = document.getElementById("mode");
+const count = document.getElementById("count");
+const difficulty = document.getElementById("difficulty");
 
-const status =
-    document.getElementById("status");
+const difficultyBox =
+    document.getElementById("difficultyBox");
 
-const score =
-    document.getElementById("score");
+const newGame =
+    document.getElementById("newGame");
 
 const aim =
     document.getElementById("aim");
 
-const modeSelect =
-    document.getElementById("mode");
-
-const countSelect =
-    document.getElementById("ballCount");
-
-const difficultySelect =
-    document.getElementById("difficulty");
-
-const difficultyRow =
-    document.getElementById("difficultyRow");
-
-const newGameButton =
-    document.getElementById("newGame");
-
-const pauseButton =
-    document.getElementById("pauseButton");
-
 const pauseOverlay =
     document.getElementById("pauseOverlay");
 
-const resumeButton =
+const resume =
     document.getElementById("resume");
 
-const restartButton =
+const restart =
     document.getElementById("restart");
 
 
 let balls = [];
-
 let turn = 0;
 
 let dragging = false;
-
-let activeBall = null;
+let selectedBall = null;
 
 let moving = false;
-
 let paused = false;
-
 let gameOver = false;
 
-let animationId = null;
-
+let animationFrame = null;
 let lastTime = 0;
 
 
-/*
-    구멍 위치
-*/
-
+/* 구멍 */
 const holes = [
-
     [0, 0],
-
     [.5, 0],
-
     [1, 0],
-
     [0, 1],
-
     [.5, 1],
-
     [1, 1]
-
 ];
 
 
-/*
-    마우스 위치를
-    게임판 좌표 0~1로 변환
-*/
-
-function pointerPosition(event) {
+/* 좌표 변환 */
+function getPointer(event) {
 
     const rect =
         board.getBoundingClientRect();
 
     return {
-
         x:
             (event.clientX - rect.left)
             / rect.width,
@@ -543,162 +481,132 @@ function pointerPosition(event) {
         y:
             (event.clientY - rect.top)
             / rect.height
-
     };
 }
 
 
-/*
-    두 점 거리
-*/
-
-function distance(x1, y1, x2, y2) {
+/* 거리 */
+function dist(x1, y1, x2, y2) {
 
     return Math.sqrt(
-
-        Math.pow(x1 - x2, 2) +
-        Math.pow(y1 - y2, 2)
-
+        (x1 - x2) ** 2 +
+        (y1 - y2) ** 2
     );
 }
 
 
-/*
-    현재 설정에 맞게
-    게임 생성
-*/
+/* 게임 생성 */
+function resetGame() {
 
-function createGame() {
+    if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+    }
 
-    cancelAnimationFrame(animationId);
+    balls.forEach(ball => {
+        if (ball.el) {
+            ball.el.remove();
+        }
+    });
 
     balls = [];
 
     turn = 0;
-
+    dragging = false;
+    selectedBall = null;
     moving = false;
-
     paused = false;
-
     gameOver = false;
 
-    activeBall = null;
-
-    dragging = false;
-
+    pauseOverlay.style.display = "none";
     aim.style.display = "none";
 
-    pauseOverlay.style.display = "none";
-
-    const count =
-        Number(countSelect.value);
+    const amount =
+        Math.max(
+            1,
+            Math.min(
+                8,
+                Number(count.value)
+            )
+        );
 
     /*
-        위쪽:
-        플레이어 2 / AI
+     * 알 간격을 자동으로 계산해서
+     * 8개에서도 바둑판 밖으로 나가지 않게 함.
+     */
+    const spacing =
+        Math.min(
+            0.055,
+            0.34 / amount
+        );
 
-        아래쪽:
-        플레이어 1
-    */
+    for (let i = 0; i < amount; i++) {
 
-    for (let i = 0; i < count; i++) {
-
-        const spacing =
-            count === 1
-                ? 0
-                : (i - (count - 1) / 2)
-                    * Math.min(
-                        0.07,
-                        0.42 / count
-                    );
+        const offset =
+            (i - (amount - 1) / 2)
+            * spacing;
 
         balls.push({
-
-            id: i,
-
             player: 0,
-
-            x: 0.5 + spacing,
-
-            y: 0.78,
-
+            x: .5 + offset,
+            y: .77,
             vx: 0,
-
             vy: 0,
-
-            el: null,
-
-            alive: true
-
+            alive: true,
+            el: null
         });
 
         balls.push({
-
-            id: i,
-
             player: 1,
-
-            x: 0.5 + spacing,
-
-            y: 0.22,
-
+            x: .5 + offset,
+            y: .23,
             vx: 0,
-
             vy: 0,
-
-            el: null,
-
-            alive: true
-
+            alive: true,
+            el: null
         });
-
     }
 
-    renderBalls();
+    render();
 
     updateScore();
-
     updateStatus();
 
+    if (mode.value === "ai") {
+        difficultyBox.style.display = "flex";
+    } else {
+        difficultyBox.style.display = "none";
+    }
 }
 
 
-/*
-    알 HTML 생성
-*/
+/* 알 생성 */
+function createElement(ball) {
 
-function createBallElement(ball) {
-
-    const element =
+    const el =
         document.createElement("div");
 
-    element.className =
+    el.className =
         "marble " +
         (ball.player === 0
             ? "black"
             : "white");
 
-    board.appendChild(element);
+    board.appendChild(el);
 
-    ball.el = element;
-
+    ball.el = el;
 }
 
 
-/*
-    모든 알 표시
-*/
-
-function renderBalls() {
+/* 화면 표시 */
+function render() {
 
     for (const ball of balls) {
 
         if (!ball.alive) continue;
 
         if (!ball.el) {
-
-            createBallElement(ball);
-
+            createElement(ball);
         }
 
         ball.el.style.left =
@@ -706,16 +614,11 @@ function renderBalls() {
 
         ball.el.style.top =
             (ball.y * 100) + "%";
-
     }
-
 }
 
 
-/*
-    점수 표시
-*/
-
+/* 점수 */
 function updateScore() {
 
     const black =
@@ -729,19 +632,12 @@ function updateScore() {
         ).length;
 
     score.textContent =
-        "⚫ 검은 알 " +
-        black +
-        "개 · ⚪ 흰 알 " +
-        white +
-        "개";
-
+        "⚫ " + black +
+        "개 · ⚪ " + white + "개";
 }
 
 
-/*
-    현재 턴 표시
-*/
-
+/* 상태 */
 function updateStatus() {
 
     if (gameOver) return;
@@ -751,77 +647,59 @@ function updateStatus() {
         status.textContent =
             "⚫ 플레이어 1 차례";
 
+    } else if (mode.value === "ai") {
+
+        status.textContent =
+            "🤖 AI 차례";
+
     } else {
 
-        if (modeSelect.value === "ai") {
-
-            status.textContent =
-                "🤖 AI 차례";
-
-        } else {
-
-            status.textContent =
-                "⚪ 플레이어 2 차례";
-
-        }
-
+        status.textContent =
+            "⚪ 플레이어 2 차례";
     }
-
 }
 
 
-/*
-    플레이어가 움직일 수 있는지
-*/
-
-function canHumanPlay() {
+/* 사람 차례인지 */
+function canControl() {
 
     if (gameOver) return false;
-
     if (paused) return false;
-
     if (moving) return false;
 
-    if (turn === 1 &&
-        modeSelect.value === "ai") {
-
+    if (
+        turn === 1 &&
+        mode.value === "ai"
+    ) {
         return false;
-
     }
 
     return true;
-
 }
 
 
-/*
-    게임판 클릭
-*/
-
+/* 알 선택 */
 board.addEventListener(
     "pointerdown",
-    function(event) {
+    event => {
 
-        if (!canHumanPlay()) return;
+        if (!canControl()) return;
 
         const p =
-            pointerPosition(event);
+            getPointer(event);
 
-        const candidates =
-            balls.filter(
-                b =>
-                    b.alive &&
-                    b.player === turn
-            );
+        let nearest = null;
+        let nearestDistance = Infinity;
 
-        let closest = null;
+        for (const ball of balls) {
 
-        let closestDistance = Infinity;
-
-        for (const ball of candidates) {
+            if (
+                !ball.alive ||
+                ball.player !== turn
+            ) continue;
 
             const d =
-                distance(
+                dist(
                     p.x,
                     p.y,
                     ball.x,
@@ -829,54 +707,46 @@ board.addEventListener(
                 );
 
             if (
-                d < 0.085 &&
-                d < closestDistance
+                d < .09 &&
+                d < nearestDistance
             ) {
 
-                closest = ball;
-
-                closestDistance = d;
-
+                nearest = ball;
+                nearestDistance = d;
             }
-
         }
 
-        if (!closest) return;
+        if (!nearest) return;
 
-        activeBall = closest;
-
+        selectedBall = nearest;
         dragging = true;
 
         board.setPointerCapture(
             event.pointerId
         );
-
     }
 );
 
 
-/*
-    조준선
-*/
-
+/* 조준 */
 board.addEventListener(
     "pointermove",
-    function(event) {
+    event => {
 
         if (
             !dragging ||
-            !activeBall ||
+            !selectedBall ||
             paused
         ) return;
 
         const p =
-            pointerPosition(event);
+            getPointer(event);
 
         const dx =
-            activeBall.x - p.x;
+            selectedBall.x - p.x;
 
         const dy =
-            activeBall.y - p.y;
+            selectedBall.y - p.y;
 
         const length =
             Math.sqrt(
@@ -884,56 +754,51 @@ board.addEventListener(
                 dy * dy
             );
 
-        if (length < 0.01) {
+        if (length < .01) {
 
             aim.style.display = "none";
 
             return;
-
         }
 
         const angle =
             Math.atan2(dy, dx);
 
-        const visualLength =
+        const width =
             Math.min(
                 length *
                 board.clientWidth *
-                1.6,
-                220
+                1.5,
+                board.clientWidth * .45
             );
 
         aim.style.display = "block";
 
         aim.style.left =
-            (activeBall.x * 100) + "%";
+            (selectedBall.x * 100) + "%";
 
         aim.style.top =
-            (activeBall.y * 100) + "%";
+            (selectedBall.y * 100) + "%";
 
         aim.style.width =
-            visualLength + "px";
+            width + "px";
 
         aim.style.transform =
             "rotate(" +
             angle +
             "rad)";
-
     }
 );
 
 
-/*
-    발사
-*/
-
+/* 발사 */
 board.addEventListener(
     "pointerup",
-    function(event) {
+    event => {
 
         if (
             !dragging ||
-            !activeBall
+            !selectedBall
         ) return;
 
         dragging = false;
@@ -941,13 +806,13 @@ board.addEventListener(
         aim.style.display = "none";
 
         const p =
-            pointerPosition(event);
+            getPointer(event);
 
         const dx =
-            activeBall.x - p.x;
+            selectedBall.x - p.x;
 
         const dy =
-            activeBall.y - p.y;
+            selectedBall.y - p.y;
 
         const length =
             Math.sqrt(
@@ -955,148 +820,116 @@ board.addEventListener(
                 dy * dy
             );
 
-        if (length < 0.025) {
+        if (length < .025) {
 
-            activeBall = null;
+            selectedBall = null;
 
             return;
-
         }
 
         const power =
-            Math.min(length, 0.55);
+            Math.min(length, .52);
 
         const speed = 6;
 
-        activeBall.vx =
+        selectedBall.vx =
             (dx / length)
             * power
             * speed;
 
-        activeBall.vy =
+        selectedBall.vy =
             (dy / length)
             * power
             * speed;
 
-        activeBall = null;
+        selectedBall = null;
 
         moving = true;
 
-        status.textContent =
-            "💥 발사!";
+        status.textContent = "💥 발사!";
 
         startPhysics();
-
     }
 );
 
 
-/*
-    벽 충돌
-*/
-
+/* 벽 */
 function wallCollision(ball) {
 
-    const radius = 0.035;
+    const r = .035;
 
-    if (ball.x < radius) {
-
-        ball.x = radius;
-
+    if (ball.x < r) {
+        ball.x = r;
         ball.vx =
-            Math.abs(ball.vx)
-            * 0.78;
-
+            Math.abs(ball.vx) * .75;
     }
 
-    if (ball.x > 1 - radius) {
-
-        ball.x = 1 - radius;
-
+    if (ball.x > 1 - r) {
+        ball.x = 1 - r;
         ball.vx =
-            -Math.abs(ball.vx)
-            * 0.78;
-
+            -Math.abs(ball.vx) * .75;
     }
 
-    if (ball.y < radius) {
-
-        ball.y = radius;
-
+    if (ball.y < r) {
+        ball.y = r;
         ball.vy =
-            Math.abs(ball.vy)
-            * 0.78;
-
+            Math.abs(ball.vy) * .75;
     }
 
-    if (ball.y > 1 - radius) {
-
-        ball.y = 1 - radius;
-
+    if (ball.y > 1 - r) {
+        ball.y = 1 - r;
         ball.vy =
-            -Math.abs(ball.vy)
-            * 0.78;
-
+            -Math.abs(ball.vy) * .75;
     }
-
 }
 
 
-/*
-    구멍 검사
-*/
-
+/* 구멍 */
 function checkHole(ball) {
 
     for (const hole of holes) {
 
         const d =
-            distance(
+            dist(
                 ball.x,
                 ball.y,
                 hole[0],
                 hole[1]
             );
 
-        if (d < 0.065) {
+        if (d < .063) {
 
             ball.alive = false;
 
             if (ball.el) {
-
                 ball.el.remove();
-
                 ball.el = null;
-
             }
 
             ball.vx = 0;
-
             ball.vy = 0;
 
             return true;
-
         }
-
     }
 
     return false;
-
 }
 
 
-/*
-    알 충돌
-*/
-
+/* 알 충돌 */
 function collideBalls() {
 
     const alive =
-        balls.filter(
-            b => b.alive
-        );
+        balls.filter(b => b.alive);
 
-    for (let i = 0; i < alive.length; i++) {
+    const radius = .067;
+
+    for (
+        let i = 0;
+        i < alive.length;
+        i++
+    ) {
 
         for (
             let j = i + 1;
@@ -1105,14 +938,10 @@ function collideBalls() {
         ) {
 
             const a = alive[i];
-
             const b = alive[j];
 
-            const dx =
-                b.x - a.x;
-
-            const dy =
-                b.y - a.y;
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
 
             const d =
                 Math.sqrt(
@@ -1120,28 +949,22 @@ function collideBalls() {
                     dy * dy
                 );
 
-            const minDistance =
-                0.068;
-
             if (
-                d >= minDistance ||
-                d === 0
+                d >= radius ||
+                d < .000001
             ) continue;
 
-            const nx =
-                dx / d;
+            const nx = dx / d;
+            const ny = dy / d;
 
-            const ny =
-                dy / d;
-
-            const relativeVelocity =
+            const relative =
                 (b.vx - a.vx) * nx +
                 (b.vy - a.vy) * ny;
 
-            if (relativeVelocity < 0) {
+            if (relative < 0) {
 
                 const impulse =
-                    -relativeVelocity * 0.92;
+                    -relative * .9;
 
                 a.vx -=
                     impulse * nx;
@@ -1154,11 +977,10 @@ function collideBalls() {
 
                 b.vy +=
                     impulse * ny;
-
             }
 
             const overlap =
-                minDistance - d;
+                radius - d;
 
             a.x -=
                 nx * overlap / 2;
@@ -1171,59 +993,48 @@ function collideBalls() {
 
             b.y +=
                 ny * overlap / 2;
-
         }
-
     }
-
 }
 
 
-/*
-    물리 엔진
-*/
-
+/* 물리 */
 function startPhysics() {
 
     lastTime =
         performance.now();
 
-    function frame(now) {
+    function loop(now) {
 
         if (paused) return;
 
         const dt =
             Math.min(
                 (now - lastTime) / 1000,
-                0.025
+                .025
             );
 
         lastTime = now;
 
-        let anyMoving = false;
+        let active = false;
 
         for (const ball of balls) {
 
             if (!ball.alive) continue;
 
-            ball.x +=
-                ball.vx * dt;
-
-            ball.y +=
-                ball.vy * dt;
+            ball.x += ball.vx * dt;
+            ball.y += ball.vy * dt;
 
             /*
-                마찰
-            */
+             * 마찰
+             */
+            const friction =
+                Math.pow(.035, dt);
 
-            ball.vx *=
-                Math.pow(0.035, dt);
-
-            ball.vy *=
-                Math.pow(0.035, dt);
+            ball.vx *= friction;
+            ball.vy *= friction;
 
             wallCollision(ball);
-
             checkHole(ball);
 
             const speed =
@@ -1232,87 +1043,71 @@ function startPhysics() {
                     ball.vy * ball.vy
                 );
 
-            if (speed > 0.025) {
-
-                anyMoving = true;
-
+            if (speed > .025) {
+                active = true;
             } else {
-
                 ball.vx = 0;
-
                 ball.vy = 0;
-
             }
-
         }
 
         collideBalls();
-
-        renderBalls();
-
+        render();
         updateScore();
 
-        if (anyMoving) {
+        if (active) {
 
-            animationId =
-                requestAnimationFrame(frame);
+            animationFrame =
+                requestAnimationFrame(loop);
 
         } else {
 
             moving = false;
 
             checkWinner();
-
         }
-
     }
 
-    animationId =
-        requestAnimationFrame(frame);
-
+    animationFrame =
+        requestAnimationFrame(loop);
 }
 
 
-/*
-    승리 검사
-*/
-
+/* 승리 */
 function checkWinner() {
 
-    const black =
+    const blackAlive =
         balls.some(
             b =>
                 b.player === 0 &&
                 b.alive
         );
 
-    const white =
+    const whiteAlive =
         balls.some(
             b =>
                 b.player === 1 &&
                 b.alive
         );
 
-    if (!black) {
+    if (!blackAlive) {
 
         gameOver = true;
 
         status.textContent =
-            "🎉 ⚪ 흰 알 승리!";
+            "🎉 ⚪ 흰색 승리!";
 
         return;
-
     }
 
-    if (!white) {
+    if (!whiteAlive) {
 
         gameOver = true;
 
         status.textContent =
-            "🎉 ⚫ 검은 알 승리!";
+            "🎉 ⚫ 검은색 승리!";
 
         return;
-
     }
 
     turn =
@@ -1320,57 +1115,21 @@ function checkWinner() {
 
     updateStatus();
 
-    /*
-        AI 차례라면
-        잠시 기다렸다가 공격
-    */
-
     if (
         turn === 1 &&
-        modeSelect.value === "ai"
+        mode.value === "ai"
     ) {
 
         setTimeout(
             aiTurn,
-            getAiDelay()
+            500
         );
-
     }
-
 }
 
 
-/*
-    AI 난이도별 반응 시간
-*/
-
-function getAiDelay() {
-
-    const difficulty =
-        difficultySelect.value;
-
-    if (difficulty === "easy") {
-
-        return 900;
-
-    }
-
-    if (difficulty === "hard") {
-
-        return 350;
-
-    }
-
-    return 600;
-
-}
-
-
-/*
-    AI가 선택할 알
-*/
-
-function chooseAiBall() {
+/* AI 알 선택 */
+function chooseAI() {
 
     const aiBalls =
         balls.filter(
@@ -1379,23 +1138,12 @@ function chooseAiBall() {
                 b.player === 1
         );
 
-    if (aiBalls.length === 0)
+    if (!aiBalls.length) {
         return null;
-
-    const playerBalls =
-        balls.filter(
-            b =>
-                b.alive &&
-                b.player === 0
-        );
-
-    /*
-        쉬움:
-        랜덤
-    */
+    }
 
     if (
-        difficultySelect.value === "easy"
+        difficulty.value === "easy"
     ) {
 
         return aiBalls[
@@ -1404,146 +1152,7 @@ function chooseAiBall() {
                 aiBalls.length
             )
         ];
-
     }
-
-    /*
-        보통:
-        상대 알에 가까운 알
-    */
-
-    if (
-        difficultySelect.value === "normal"
-    ) {
-
-        let best = aiBalls[0];
-
-        let bestDistance = Infinity;
-
-        for (const ai of aiBalls) {
-
-            for (const enemy of playerBalls) {
-
-                const d =
-                    distance(
-                        ai.x,
-                        ai.y,
-                        enemy.x,
-                        enemy.y
-                    );
-
-                if (
-                    d <
-                    bestDistance
-                ) {
-
-                    bestDistance = d;
-
-                    best = ai;
-
-                }
-
-            }
-
-        }
-
-        return best;
-
-    }
-
-    /*
-        어려움:
-        가장 가까운 적 + 구멍 방향을
-        어느 정도 고려
-    */
-
-    let best = aiBalls[0];
-
-    let bestScore = Infinity;
-
-    for (const ai of aiBalls) {
-
-        for (const enemy of playerBalls) {
-
-            const d =
-                distance(
-                    ai.x,
-                    ai.y,
-                    enemy.x,
-                    enemy.y
-                );
-
-            /*
-                적을 구멍 쪽으로 밀 수 있는
-                방향을 선호
-            */
-
-            let holeBonus = 0;
-
-            for (const hole of holes) {
-
-                const enemyHole =
-                    distance(
-                        enemy.x,
-                        enemy.y,
-                        hole[0],
-                        hole[1]
-                    );
-
-                holeBonus =
-                    Math.min(
-                        holeBonus,
-                        enemyHole
-                    );
-
-            }
-
-            const scoreValue =
-                d + holeBonus * 0.2;
-
-            if (
-                scoreValue <
-                bestScore
-            ) {
-
-                bestScore =
-                    scoreValue;
-
-                best = ai;
-
-            }
-
-        }
-
-    }
-
-    return best;
-
-}
-
-
-/*
-    AI 공격
-*/
-
-function aiTurn() {
-
-    if (
-        gameOver ||
-        paused ||
-        moving ||
-        turn !== 1 ||
-        modeSelect.value !== "ai"
-    ) {
-
-        return;
-
-    }
-
-    const aiBall =
-        chooseAiBall();
-
-    if (!aiBall) return;
 
     const enemies =
         balls.filter(
@@ -1552,167 +1161,146 @@ function aiTurn() {
                 b.player === 0
         );
 
-    if (enemies.length === 0)
-        return;
+    if (!enemies.length) {
+        return aiBalls[0];
+    }
 
-    let target =
-        enemies[0];
+    let best = aiBalls[0];
+    let bestDistance = Infinity;
 
-    /*
-        AI 난이도에 따라
-        목표 선정
-    */
-
-    if (
-        difficultySelect.value === "easy"
-    ) {
-
-        target =
-            enemies[
-                Math.floor(
-                    Math.random() *
-                    enemies.length
-                )
-            ];
-
-    } else {
-
-        let closest =
-            Infinity;
+    for (const ai of aiBalls) {
 
         for (const enemy of enemies) {
 
             const d =
-                distance(
-                    aiBall.x,
-                    aiBall.y,
+                dist(
+                    ai.x,
+                    ai.y,
                     enemy.x,
                     enemy.y
                 );
 
-            if (d < closest) {
+            if (d < bestDistance) {
 
-                closest = d;
-
-                target = enemy;
-
+                bestDistance = d;
+                best = ai;
             }
-
         }
-
     }
 
-    /*
-        적 방향으로 발사
+    return best;
+}
 
-        AI 난이도별 오차
-    */
 
-    let error = 0;
+/* AI 공격 */
+function aiTurn() {
 
     if (
-        difficultySelect.value === "easy"
-    ) {
+        gameOver ||
+        paused ||
+        moving ||
+        mode.value !== "ai" ||
+        turn !== 1
+    ) return;
 
-        error =
-            (Math.random() - .5)
-            * 0.45;
+    const ai =
+        chooseAI();
 
-    }
+    if (!ai) return;
 
-    if (
-        difficultySelect.value === "normal"
-    ) {
-
-        error =
-            (Math.random() - .5)
-            * 0.16;
-
-    }
-
-    if (
-        difficultySelect.value === "hard"
-    ) {
-
-        error =
-            (Math.random() - .5)
-            * 0.05;
-
-    }
-
-    const dx =
-        target.x -
-        aiBall.x;
-
-    const dy =
-        target.y -
-        aiBall.y;
-
-    const length =
-        Math.sqrt(
-            dx * dx +
-            dy * dy
+    const enemies =
+        balls.filter(
+            b =>
+                b.alive &&
+                b.player === 0
         );
 
-    if (length < 0.01)
-        return;
+    if (!enemies.length) return;
 
-    /*
-        AI가 조준하는 방향
-    */
+    let target = enemies[0];
+    let closest = Infinity;
+
+    for (const enemy of enemies) {
+
+        const d =
+            dist(
+                ai.x,
+                ai.y,
+                enemy.x,
+                enemy.y
+            );
+
+        if (d < closest) {
+
+            closest = d;
+            target = enemy;
+        }
+    }
 
     let angle =
-        Math.atan2(dy, dx);
+        Math.atan2(
+            target.y - ai.y,
+            target.x - ai.x
+        );
+
+    /*
+     * 난이도별 조준 오차
+     */
+    let error = 0;
+
+    if (difficulty.value === "easy") {
+
+        error =
+            (Math.random() - .5) * .65;
+
+    } else if (
+        difficulty.value === "normal"
+    ) {
+
+        error =
+            (Math.random() - .5) * .22;
+
+    } else {
+
+        error =
+            (Math.random() - .5) * .055;
+    }
 
     angle += error;
 
-    /*
-        거리와 난이도에 따른 힘
-    */
-
     let power =
         Math.min(
-            .22 +
-            length * 0.55,
-            .52
+            .22 + closest * .6,
+            .50
         );
 
-    if (
-        difficultySelect.value === "easy"
+    if (difficulty.value === "easy") {
+
+        power *=
+            .65 +
+            Math.random() * .3;
+
+    } else if (
+        difficulty.value === "normal"
     ) {
 
         power *=
-            0.65 +
-            Math.random() * 0.3;
+            .88 +
+            Math.random() * .12;
 
-    }
-
-    if (
-        difficultySelect.value === "normal"
-    ) {
+    } else {
 
         power *=
-            0.88 +
-            Math.random() * 0.14;
-
+            .96 +
+            Math.random() * .04;
     }
 
-    if (
-        difficultySelect.value === "hard"
-    ) {
-
-        power *=
-            0.96 +
-            Math.random() * 0.05;
-
-    }
-
-    aiBall.vx =
+    ai.vx =
         Math.cos(angle)
         * power
         * 6;
 
-    aiBall.vy =
+    ai.vy =
         Math.sin(angle)
         * power
         * 6;
@@ -1723,36 +1311,22 @@ function aiTurn() {
         "🤖 AI가 공격합니다!";
 
     startPhysics();
-
 }
 
 
-/*
-    일시정지
-*/
-
+/* 일시정지 */
 function pauseGame() {
 
-    if (
-        gameOver ||
-        paused
-    ) return;
+    if (gameOver) return;
 
     paused = true;
 
     pauseOverlay.style.display =
         "flex";
-
-    pauseButton.textContent =
-        "▶ 계속하기";
-
 }
 
 
-/*
-    계속하기
-*/
-
+/* 재개 */
 function resumeGame() {
 
     if (!paused) return;
@@ -1761,9 +1335,6 @@ function resumeGame() {
 
     pauseOverlay.style.display =
         "none";
-
-    pauseButton.textContent =
-        "⏸ 일시정지";
 
     if (moving) {
 
@@ -1775,150 +1346,90 @@ function resumeGame() {
 
         if (
             turn === 1 &&
-            modeSelect.value === "ai"
+            mode.value === "ai"
         ) {
 
             setTimeout(
                 aiTurn,
                 250
             );
-
         }
-
     }
-
 }
 
 
 /*
-    ESC 키
-*/
-
+ * ESC
+ *
+ * iframe 내부에서 키보드 포커스를 얻은 경우뿐 아니라
+ * 게임판을 클릭한 뒤에도 정상적으로 동작하도록 함.
+ */
 document.addEventListener(
     "keydown",
-    function(event) {
+    event => {
 
         if (
             event.key === "Escape"
         ) {
 
             if (paused) {
-
                 resumeGame();
-
             } else {
-
                 pauseGame();
-
             }
-
         }
-
     }
 );
 
 
-/*
-    버튼
-*/
+/* 설정 변경 */
+mode.addEventListener(
+    "change",
+    resetGame
+);
 
-pauseButton.addEventListener(
+count.addEventListener(
+    "change",
+    resetGame
+);
+
+difficulty.addEventListener(
+    "change",
+    () => {
+        if (
+            mode.value === "ai" &&
+            turn === 1 &&
+            !moving &&
+            !paused
+        ) {
+            setTimeout(
+                aiTurn,
+                300
+            );
+        }
+    }
+);
+
+
+/* 버튼 */
+newGame.addEventListener(
     "click",
-    function() {
-
-        if (paused) {
-
-            resumeGame();
-
-        } else {
-
-            pauseGame();
-
-        }
-
-    }
+    resetGame
 );
 
-
-resumeButton.addEventListener(
+resume.addEventListener(
     "click",
     resumeGame
 );
 
-
-restartButton.addEventListener(
+restart.addEventListener(
     "click",
-    createGame
+    resetGame
 );
 
 
-newGameButton.addEventListener(
-    "click",
-    createGame
-);
-
-
-/*
-    AI 메뉴 표시/숨김
-*/
-
-modeSelect.addEventListener(
-    "change",
-    function() {
-
-        if (
-            modeSelect.value === "ai"
-        ) {
-
-            difficultyRow.style.display =
-                "flex";
-
-        } else {
-
-            difficultyRow.style.display =
-                "none";
-
-        }
-
-        createGame();
-
-    }
-);
-
-
-countSelect.addEventListener(
-    "change",
-    createGame
-);
-
-
-difficultySelect.addEventListener(
-    "change",
-    function() {
-
-        if (
-            turn === 1 &&
-            modeSelect.value === "ai" &&
-            !moving &&
-            !paused
-        ) {
-
-            setTimeout(
-                aiTurn,
-                250
-            );
-
-        }
-
-    }
-);
-
-
-/*
-    시작
-*/
-
-createGame();
+/* 시작 */
+resetGame();
 
 </script>
 
@@ -1926,8 +1437,10 @@ createGame();
 </html>
 """
 
+# 기존 900px보다 충분히 크게 확보해서
+# 바둑판 하단이 iframe에서 잘리지 않도록 수정
 components.html(
-    game_html,
-    height=900,
-    scrolling=False
+    GAME,
+    height=1050,
+    scrolling=True
 )
